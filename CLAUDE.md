@@ -24,11 +24,11 @@ light/dark via `prefers-color-scheme`. No test setup yet.
 ```
 src/main.jsx, App.jsx        router + top bar with backend/volume health dot
 src/api.js                   the only place that calls fetch()
-src/hooks.js                 useHeadlines (paging + sync polling), useReadArticles, useTickerSet, useDebounced
+src/hooks.js                 useHeadlines (paging + sync polling), usePinnedTickers, useReadArticles, useTickerSet, useDebounced
 src/format.js                dates, numbers, bytes, safeLink, sentiment tone
-src/pages/TickersPage.jsx    "/"  filterable/sortable ticker grid
+src/pages/TickersPage.jsx    "/"  filterable/sortable ticker grid, "Pinned" section first
 src/pages/ReaderPage.jsx     "/t/:ticker/:articleId?"  two-pane reader, j/k navigation
-src/components/              HeadlineList, ArticleView (+ Summarize button, `s` shortcut), SummaryPanel, SummaryChat (follow-up Q&A), SyncBanner, Sentiment
+src/components/              HeadlineList, ArticleView (+ Summarize button, `s` shortcut), SummaryPanel, SummaryChat (follow-up Q&A), PinButton, SyncBanner, Sentiment
 src/styles.css               all styles, CSS variables for theming
 ```
 
@@ -47,6 +47,9 @@ src/styles.css               all styles, CSS variables for theming
   thread each time (the backend is stateless). Keep `MAX_MESSAGES` / `MAX_QUESTION_CHARS`
   in `SummaryChat.jsx` in step with `FOLLOW_UP_LIMITS` in `backend/src/gemini.js`. Answers
   are plain text rendered with `white-space: pre-wrap` — no Markdown/HTML rendering.
+- User preferences (pinned tickers, read articles) live in `localStorage` under
+  `news-reader:*` keys; wrap access in try/catch and keep the app working without it.
+  Don't nest the pin `<button>` inside the card `<a>` — they are siblings in `.ticker-card`.
 - Lists can be huge (NVDA > 110k articles): keep cursor paging; if rows ever get heavier,
   virtualize rather than rendering everything.
 - A ticker may be only partially indexed: respect `sync.state` from the API (banner,

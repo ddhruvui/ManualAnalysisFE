@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { forceResync } from '../api.js';
 import { formatNumber } from '../format.js';
-import { useDebounced, useHeadlines, useReadArticles, useTickerSet } from '../hooks.js';
+import { useDebounced, useHeadlines, usePinnedTickers, useReadArticles, useTickerSet } from '../hooks.js';
 import ArticleView from '../components/ArticleView.jsx';
 import HeadlineList from '../components/HeadlineList.jsx';
+import PinButton from '../components/PinButton.jsx';
 import SyncBanner from '../components/SyncBanner.jsx';
 
 const isTyping = (el) => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
@@ -20,6 +21,7 @@ export default function ReaderPage() {
   const headlines = useHeadlines(ticker, q);
   const { readIds, markRead } = useReadArticles();
   const knownTickers = useTickerSet();
+  const { pinned, togglePin } = usePinnedTickers();
   const articlePaneRef = useRef(null);
 
   // A new ticker starts with a clean search box.
@@ -70,6 +72,7 @@ export default function ReaderPage() {
               ← Tickers
             </Link>
             <h1>{ticker}</h1>
+            <PinButton ticker={ticker} pinned={pinned.has(ticker)} onToggle={togglePin} />
             {sync && <span className="muted small">{formatNumber(sync.indexedCount)} indexed</span>}
           </div>
           <input

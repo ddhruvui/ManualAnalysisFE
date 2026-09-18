@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getTickers } from '../api.js';
 import { formatBytes, formatNumber, formatRelative } from '../format.js';
+import { usePinnedTickers } from '../hooks.js';
+import PinButton from '../components/PinButton.jsx';
 
 const SORTS = {
   alpha: { label: 'A–Z', compare: (a, b) => a.ticker.localeCompare(b.ticker) },
@@ -12,12 +14,33 @@ const SORTS = {
   },
 };
 
+function TickerCard({ t, pinned, onTogglePin }) {
+  return (
+    <li className="ticker-card">
+      <Link to={`/t/${t.ticker}`} className="ticker-link">
+        <span className="ticker-symbol">{t.ticker}</span>
+        <span className="ticker-count">{formatNumber(t.articleCount)} articles</span>
+        <span className="ticker-meta">
+          {formatBytes(t.fileSize)}
+          {t.fullyIndexed ? (
+            <span className="pill pill-ok">indexed</span>
+          ) : t.indexedCount > 0 ? (
+            <span className="pill">partial</span>
+          ) : null}
+        </span>
+      </Link>
+      <PinButton ticker={t.ticker} pinned={pinned} onToggle={onTogglePin} />
+    </li>
+  );
+}
+
 export default function TickersPage() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('');
   const [sort, setSort] = useState('alpha');
+  const { pinned, togglePin } = usePinnedTickers();
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -27,11 +50,13 @@ export default function TickersPage() {
     return () => ctrl.abort();
   }, []);
 
-  const visible = useMemo(() => {
-    if (!data) return [];
-    const needle = filter.trim().toUpperCase();
+  const needle = filter.trim().toUpperCase();
+
+  // Pinned tickers always come first; both groups follow the chosen sort (A–Z by default).
+  const { pinnedRows, otherRows } = useMemo(() => {
+    if (!data) return { pinnedRows: [], otherRows: [] };
     const rows = needle ? data.tickers.filter((t) => t.ticker.includes(needle)) : data.tickers;
-    return [...rows].sort((a, b) => {
+    const sorted = [...rows].sort((a, b) => {
       // An exact / prefix match should surface first while typing.
       if (needle) {
         const rank = (t) => (t.ticker === needle ? 0 : t.ticker.startsWith(needle) ? 1 : 2);
@@ -39,16 +64,24 @@ export default function TickersPage() {
       }
       return SORTS[sort].compare(a, b);
     });
-  }, [data, filter, sort]);
+    return {
+      pinnedRows: sorted.filter((t) => pinned.has(t.ticker)),
+      otherRows: sorted.filter((t) => !pinned.has(t.ticker)),
+    };
+  }, [data, needle, sort, pinned]);
 
   const totalArticles = useMemo(
     () => data?.tickers.reduce((sum, t) => sum + (t.articleCount ?? 0), 0) ?? 0,
     [data],
   );
 
-  const openFirstMatch = (e) => {
+  const visibleCount = pinnedRows.length + otherRows.length;
+
+  const openBestMatch = (e) => {
     e.preventDefault();
-    if (visible.length) navigate(`/t/${visible[0].ticker}`);
+    const all = [...pinnedRows, ...otherRows];
+    const best = all.find((t) => t.ticker === needle) ?? all[0]; // typing "A" opens A, not a pinned AAPL
+    if (best) navigate(`/t/${best.ticker}`);
   };
 
   return (
@@ -64,11 +97,11 @@ export default function TickersPage() {
             </p>
           )}
         </div>
-        <form className="controls" onSubmit={openFirstMatch} role="search">
+        <form className="controls" onSubmit={openBestMatch} role="search">
           <input
             className="input"
             type="search"
-            placeholder="Filter tickers… (Enter opens the first match)"
+            placeholder="Filter tickers… (Enter opens the best match)"
             aria-label="Filter tickers"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -86,26 +119,36 @@ export default function TickersPage() {
 
       {error && <p className="notice notice-error">Couldn’t load tickers: {error}</p>}
       {!data && !error && <p className="empty">Loading tickers from the volume…</p>}
-      {data && !visible.length && <p className="empty">No ticker matches “{filter}”.</p>}
+      {data && !visibleCount && <p className="empty">No ticker matches “{filter}”.</p>}
 
-      <ul className="ticker-grid">
-        {visible.map((t) => (
-          <li key={t.ticker}>
-            <Link to={`/t/${t.ticker}`} className="ticker-card">
-              <span className="ticker-symbol">{t.ticker}</span>
-              <span className="ticker-count">{formatNumber(t.articleCount)} articles</span>
-              <span className="ticker-meta">
-                {formatBytes(t.fileSize)}
-                {t.fullyIndexed ? (
-                  <span className="pill pill-ok">indexed</span>
-                ) : t.indexedCount > 0 ? (
-                  <span className="pill">partial</span>
-                ) : null}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      {pinnedRows.length > 0 && (
+        <section aria-labelledby="pinned-heading" className="ticker-section">
+          <h2 id="pinned-heading" className="section-heading">
+            Pinned <span className="muted">· {pinnedRows.length}</span>
+          </h2>
+          <ul className="ticker-grid">
+            {pinnedRows.map((t) => (
+              <TickerCard key={t.ticker} t={t} pinned onTogglePin={togglePin} />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {otherRows.length > 0 && (
+        <section aria-labelledby="all-heading" className="ticker-section">
+          <h2 id="all-heading" className="section-heading">
+            {pinned.size > 0 ? 'All other tickers' : 'All tickers'}{' '}
+            {data && pinned.size === 0 && !needle && (
+              <span className="muted section-hint">· use the pin on a card to keep tickers you follow at the top</span>
+            )}
+          </h2>
+          <ul className="ticker-grid">
+            {otherRows.map((t) => (
+              <TickerCard key={t.ticker} t={t} pinned={false} onTogglePin={togglePin} />
+            ))}
+          </ul>
+        </section>
+      )}
     </main>
   );
 }

@@ -268,10 +268,33 @@ a:focus-visible,
   gap: 8px;
 }
 
+.ticker-section + .ticker-section {
+  margin-top: 28px;
+}
+
+.section-heading {
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.section-hint {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
 .ticker-card {
+  position: relative;
+}
+
+.ticker-link {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  height: 100%;
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -280,8 +303,50 @@ a:focus-visible,
   text-decoration: none;
 }
 
-.ticker-card:hover {
+.ticker-link:hover {
   border-color: var(--accent);
+}
+
+/* ---------- pin toggle ---------- */
+
+.pin-button {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.pin-button:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.pin-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.pin-button.is-pinned {
+  color: var(--accent);
+}
+
+.ticker-card .pin-button {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  opacity: 0.4;
+}
+
+.ticker-card:hover .pin-button,
+.ticker-card .pin-button:focus-visible,
+.ticker-card .pin-button.is-pinned {
+  opacity: 1;
 }
 
 .ticker-symbol {
@@ -332,6 +397,11 @@ a:focus-visible,
   display: flex;
   align-items: baseline;
   gap: 10px;
+}
+
+.reader-title .pin-button {
+  align-self: center;
+  margin-left: -6px;
 }
 
 .reader-title h1 {

@@ -31,6 +31,44 @@ export function useTickerSet() {
   return tickers;
 }
 
+const PINNED_KEY = 'news-reader:pinned';
+
+function loadPinned() {
+  try {
+    const value = JSON.parse(localStorage.getItem(PINNED_KEY));
+    return Array.isArray(value) ? value.filter((t) => typeof t === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Tickers the user pinned to the top of the ticker list (this browser only). */
+export function usePinnedTickers() {
+  const [pinned, setPinned] = useState(() => new Set(loadPinned()));
+
+  // Keep other open tabs in step.
+  useEffect(() => {
+    const onStorage = (e) => e.key === PINNED_KEY && setPinned(new Set(loadPinned()));
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  const togglePin = useCallback((ticker) => {
+    setPinned((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(ticker)) next.add(ticker);
+      try {
+        localStorage.setItem(PINNED_KEY, JSON.stringify([...next]));
+      } catch {
+        // storage unavailable — pins just won't persist
+      }
+      return next;
+    });
+  }, []);
+
+  return { pinned, togglePin };
+}
+
 const READ_KEY = 'news-reader:read';
 const READ_LIMIT = 5000;
 
