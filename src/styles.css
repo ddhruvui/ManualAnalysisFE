@@ -607,6 +607,104 @@ a:focus-visible,
   }
 }
 
+/* ---------- follow-up chat (inside the summary) ---------- */
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border));
+}
+
+.chat-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chat-msg {
+  max-width: 92%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.chat-msg p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.chat-user {
+  align-self: flex-end;
+  border-color: transparent;
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+}
+
+.chat-who {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.chat-pending p {
+  animation: summary-pulse 1.2s ease-in-out infinite;
+}
+
+.chat-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip-ask {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  color: var(--accent);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chip-ask:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.chat-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.chat-input {
+  flex: 1;
+  height: auto;
+  min-height: 34px;
+  padding: 7px 10px;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+.chat-error {
+  color: var(--negative);
+  font-size: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-pending p {
+    animation: none;
+  }
+}
+
 /* ---------- sentiment ---------- */
 
 .tone-positive {

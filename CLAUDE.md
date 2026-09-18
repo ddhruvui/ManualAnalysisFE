@@ -28,7 +28,7 @@ src/hooks.js                 useHeadlines (paging + sync polling), useReadArticl
 src/format.js                dates, numbers, bytes, safeLink, sentiment tone
 src/pages/TickersPage.jsx    "/"  filterable/sortable ticker grid
 src/pages/ReaderPage.jsx     "/t/:ticker/:articleId?"  two-pane reader, j/k navigation
-src/components/              HeadlineList, ArticleView (+ Summarize button, `s` shortcut), SummaryPanel, SyncBanner, Sentiment
+src/components/              HeadlineList, ArticleView (+ Summarize button, `s` shortcut), SummaryPanel, SummaryChat (follow-up Q&A), SyncBanner, Sentiment
 src/styles.css               all styles, CSS variables for theming
 ```
 
@@ -43,6 +43,10 @@ src/styles.css               all styles, CSS variables for theming
   trigger it from an explicit user action; keep the in-memory session cache in
   `ArticleView.jsx` so revisiting an article doesn't call again. Render summary fields as
   text, keep the "can be wrong / not investment advice" line.
+- Follow-ups use `POST /api/news/:id/ask` and must send the shown summary + the entire
+  thread each time (the backend is stateless). Keep `MAX_MESSAGES` / `MAX_QUESTION_CHARS`
+  in `SummaryChat.jsx` in step with `FOLLOW_UP_LIMITS` in `backend/src/gemini.js`. Answers
+  are plain text rendered with `white-space: pre-wrap` — no Markdown/HTML rendering.
 - Lists can be huge (NVDA > 110k articles): keep cursor paging; if rows ever get heavier,
   virtualize rather than rendering everything.
 - A ticker may be only partially indexed: respect `sync.state` from the API (banner,

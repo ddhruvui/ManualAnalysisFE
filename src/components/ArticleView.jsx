@@ -124,7 +124,7 @@ export default function ArticleView({ articleId, currentTicker, knownTickers, on
         )}
       </header>
 
-      <SummaryPanel state={summary} ticker={currentTicker} onRetry={summarize} />
+      <SummaryPanel state={summary} articleId={articleId} ticker={currentTicker} onRetry={summarize} />
 
       <div className="article-body">
         {paragraphs.length ? paragraphs.map((p, i) => <p key={i}>{p}</p>) : <p className="muted">No article text in the data.</p>}
