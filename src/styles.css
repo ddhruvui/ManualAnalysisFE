@@ -429,6 +429,10 @@ a:focus-visible,
   position: sticky;
   top: 0;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   padding: 6px 12px;
   background: var(--surface-2);
   border-bottom: 1px solid var(--border);
@@ -591,6 +595,123 @@ a:focus-visible,
   border-style: dashed;
 }
 
+/* ---------- day digest ---------- */
+
+.day-digest-link {
+  flex: none;
+  padding: 1px 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+}
+
+.day-digest-link:hover,
+.day-digest-link.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.digest-nav {
+  display: flex;
+  gap: 6px;
+}
+
+.digest-nav .button {
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.button.is-disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.digest-cta {
+  margin-top: 20px;
+}
+
+.digest-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.digest-headline {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-wrap: balance;
+}
+
+.digest-themes {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.digest-themes h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.digest-events {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.digest-events > li {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.digest-event-date {
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.digest-sources {
+  margin-top: 8px;
+}
+
+.chip-source {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.digest-sources li {
+  min-width: 0;
+  max-width: min(100%, 340px);
+}
+
+.tone-bg-mixed {
+  background: color-mix(in srgb, var(--mixed) 16%, transparent);
+  color: var(--mixed);
+}
+
+.tone-bg-neutral {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
 /* ---------- AI summary ---------- */
 
 .summary {
@@ -727,6 +848,21 @@ a:focus-visible,
 
 .chat-pending p {
   animation: summary-pulse 1.2s ease-in-out infinite;
+}
+
+.chat-sources {
+  margin-top: 8px;
+}
+
+.chat-sources li {
+  min-width: 0;
+  max-width: min(100%, 320px);
+}
+
+/* In a digest the chat is its own card, so it doesn't need the divider it has under a summary. */
+.digest-chat .chat {
+  padding-top: 0;
+  border-top: 0;
 }
 
 .chat-suggestions {

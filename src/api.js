@@ -58,3 +58,19 @@ export const askFollowUp = (id, ticker, { summary, messages }, signal) =>
     body: { summary, messages },
     signal,
   });
+
+const digestPath = (ticker, { from, to }) => `/tickers/${encodeURIComponent(ticker)}/digest?from=${from}&to=${to}`;
+
+/** What a digest of [from, to) would read (article counts) — free, no AI call. */
+export const getDigestPlan = (ticker, range, signal) => request(digestPath(ticker, range), { signal });
+
+/** Generate the digest (one billable Gemini call over the period's articles; not stored). */
+export const createDigest = (ticker, period, range, signal) =>
+  request(`${digestPath(ticker, range)}&period=${encodeURIComponent(period)}`, { method: 'POST', signal });
+
+/** Follow-up question about a digest: send the digest that was shown plus the whole thread. */
+export const askDigest = (ticker, period, { from, to }, { digest, messages }, signal) =>
+  request(
+    `/tickers/${encodeURIComponent(ticker)}/digest/ask?from=${from}&to=${to}&period=${encodeURIComponent(period)}`,
+    { method: 'POST', body: { digest, messages }, signal },
+  );

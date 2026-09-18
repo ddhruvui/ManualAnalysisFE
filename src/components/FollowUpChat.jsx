@@ -1,24 +1,32 @@
 import { useEffect, useRef, useState } from 'react';
-import { askFollowUp } from '../api.js';
+import { Link } from 'react-router-dom';
 
 // Mirrors FOLLOW_UP_LIMITS in the backend.
 const MAX_MESSAGES = 24;
 const MAX_QUESTION_CHARS = 1000;
 
 // The backend keeps no conversation; hold threads for this browser session so stepping
-// away from an article and back doesn't lose them. Keyed per generated summary, so
-// "Regenerate" starts a fresh thread.
+// away and back doesn't lose them. Callers key the thread per generated summary / digest,
+// so "Regenerate" starts a fresh one.
 const threadCache = new Map();
 
-/** Follow-up Q&A about the summarized article: suggested questions, thread, and input. */
-export default function SummaryChat({ articleId, ticker, summary }) {
-  const cacheKey = `${articleId}:${ticker}:${summary.generatedAt}`;
+/**
+ * Follow-up Q&A under an AI summary or digest: suggested questions, thread, and input.
+ *
+ * `onAsk(messages, signal)` must resolve to `{ answer, sources? }`, where `messages` is the
+ * whole thread so far as [{role: 'user'|'model', text}] ending with the new question (the
+ * backend is stateless). `sources` ([{id, title}]) are shown as article links under the
+ * answer when `ticker` is given.
+ */
+export default function FollowUpChat({ cacheKey, suggestions: suggested = [], placeholder, ticker, onAsk }) {
   const [thread, setThread] = useState(() => threadCache.get(cacheKey) ?? []);
   const [draft, setDraft] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(null);
   const requestRef = useRef(null);
   const lastMessageRef = useRef(null);
+  const onAskRef = useRef(onAsk);
+  onAskRef.current = onAsk;
 
   useEffect(() => {
     setThread(threadCache.get(cacheKey) ?? []);
@@ -44,9 +52,10 @@ export default function SummaryChat({ articleId, ticker, summary }) {
     setDraft('');
     setError(null);
     setPending(true);
-    askFollowUp(articleId, ticker, { summary, messages }, ctrl.signal)
+    // Only role + text go back to the server; sources are display-only.
+    onAskRef.current(messages.map(({ role, text: t }) => ({ role, text: t })), ctrl.signal)
       .then((res) => {
-        const next = [...messages, { role: 'model', text: res.answer }];
+        const next = [...messages, { role: 'model', text: res.answer, sources: res.sources ?? [] }];
         threadCache.set(cacheKey, next);
         setThread(next);
         setPending(false);
@@ -71,7 +80,7 @@ export default function SummaryChat({ articleId, ticker, summary }) {
   };
 
   const asked = new Set(thread.filter((m) => m.role === 'user').map((m) => m.text));
-  const suggestions = (summary.followUps ?? []).filter((q) => !asked.has(q));
+  const suggestions = suggested.filter((q) => !asked.has(q));
 
   return (
     <div className="chat">
@@ -87,6 +96,17 @@ export default function SummaryChat({ articleId, ticker, summary }) {
             >
               <span className="chat-who">{m.role === 'user' ? 'You' : 'AI'}</span>
               <p>{m.text}</p>
+              {ticker && m.sources?.length > 0 && (
+                <ul className="chips chat-sources" aria-label="Articles this answer relies on">
+                  {m.sources.map((a) => (
+                    <li key={a.id}>
+                      <Link className="chip chip-link chip-source" to={`/t/${ticker}/${a.id}`} title={a.title}>
+                        {a.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </li>
           ))}
           {pending && (
@@ -130,8 +150,8 @@ export default function SummaryChat({ articleId, ticker, summary }) {
             className="input chat-input"
             rows={2}
             maxLength={MAX_QUESTION_CHARS}
-            placeholder={`e.g. “What does beating EPS expectations mean for ${ticker}?”  (Enter to send)`}
-            aria-label="Ask a follow-up question about this article"
+            placeholder={placeholder}
+            aria-label="Ask a follow-up question"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKeyDown}

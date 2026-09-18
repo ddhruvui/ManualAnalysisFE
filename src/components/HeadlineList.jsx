@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { dayKey, formatDayHeading, formatTime, sourceHost } from '../format.js';
+import { toAnchor } from '../period.js';
 import { SentimentDot } from './Sentiment.jsx';
 
 function groupByDay(items) {
@@ -13,7 +14,27 @@ function groupByDay(items) {
   return groups;
 }
 
-export default function HeadlineList({ ticker, items, selectedId, readIds, hasMore, loadingMore, onLoadMore, footer }) {
+function DayHeading({ ticker, date, activeDay }) {
+  const anchor = toAnchor(new Date(date));
+  const active = anchor === activeDay;
+  return (
+    <h2 className="day-heading">
+      <span>{formatDayHeading(date)}</span>
+      {/* autoGenerate: clicking this is the explicit request for a (billable) digest */}
+      <Link
+        to={`/t/${ticker}/day/${anchor}`}
+        state={{ autoGenerate: true }}
+        className={`day-digest-link${active ? ' is-active' : ''}`}
+        aria-current={active ? 'true' : undefined}
+        title="Summarize all of this day's articles with AI"
+      >
+        ✦ Day digest
+      </Link>
+    </h2>
+  );
+}
+
+export default function HeadlineList({ ticker, items, selectedId, activeDay, readIds, hasMore, loadingMore, onLoadMore, footer }) {
   const groups = useMemo(() => groupByDay(items), [items]);
   const sentinelRef = useRef(null);
   const selectedRef = useRef(null);
@@ -38,7 +59,7 @@ export default function HeadlineList({ ticker, items, selectedId, readIds, hasMo
     <div className="headline-list">
       {groups.map((group) => (
         <section key={group.key}>
-          <h2 className="day-heading">{formatDayHeading(group.date)}</h2>
+          <DayHeading ticker={ticker} date={group.date} activeDay={activeDay} />
           <ul>
             {group.items.map((item) => {
               const selected = item.id === selectedId;

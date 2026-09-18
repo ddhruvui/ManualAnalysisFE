@@ -4,6 +4,7 @@ import { forceResync } from '../api.js';
 import { formatNumber } from '../format.js';
 import { useDebounced, useHeadlines, usePinnedTickers, useReadArticles, useTickerSet } from '../hooks.js';
 import ArticleView from '../components/ArticleView.jsx';
+import DigestView from '../components/DigestView.jsx';
 import HeadlineList from '../components/HeadlineList.jsx';
 import PinButton from '../components/PinButton.jsx';
 import SyncBanner from '../components/SyncBanner.jsx';
@@ -13,7 +14,10 @@ const isTyping = (el) => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAR
 export default function ReaderPage() {
   const params = useParams();
   const ticker = params.ticker.toUpperCase();
-  const articleId = params.articleId ?? null;
+  // The rest of the path picks the right-hand pane: "" | "<articleId>" | "day/<YYYY-MM-DD>".
+  const [first, second] = (params['*'] ?? '').split('/');
+  const digestDay = first === 'day' ? (second ?? '') : null;
+  const articleId = digestDay === null && first ? first : null;
   const navigate = useNavigate();
 
   const [search, setSearch] = useState('');
@@ -29,7 +33,7 @@ export default function ReaderPage() {
 
   useEffect(() => {
     articlePaneRef.current?.scrollTo({ top: 0 });
-  }, [articleId]);
+  }, [articleId, digestDay]);
 
   // j / k (or arrow keys) step through headlines without leaving the keyboard. The ref
   // tracks the target synchronously so rapid key presses don't act on a stale article id.
@@ -64,7 +68,7 @@ export default function ReaderPage() {
   }
 
   return (
-    <main className={`reader${articleId ? ' has-article' : ''}`}>
+    <main className={`reader${articleId || digestDay !== null ? ' has-article' : ''}`}>
       <aside className="reader-list" aria-label={`${ticker} headlines`}>
         <div className="reader-list-head">
           <div className="reader-title">
@@ -103,6 +107,7 @@ export default function ReaderPage() {
             ticker={ticker}
             items={items}
             selectedId={articleId}
+            activeDay={digestDay}
             readIds={readIds}
             hasMore={Boolean(nextCursor)}
             loadingMore={headlines.loadingMore}
@@ -113,7 +118,14 @@ export default function ReaderPage() {
       </aside>
 
       <section className="reader-article" ref={articlePaneRef}>
-        {articleId ? (
+        {digestDay !== null ? (
+          <>
+            <Link to={`/t/${ticker}`} className="back-link only-narrow">
+              ← {ticker} headlines
+            </Link>
+            <DigestView ticker={ticker} anchor={digestDay} />
+          </>
+        ) : articleId ? (
           <>
             <Link to={`/t/${ticker}`} className="back-link only-narrow">
               ← {ticker} headlines
@@ -124,7 +136,8 @@ export default function ReaderPage() {
           <div className="empty reader-placeholder">
             <p>Select a headline to read it here.</p>
             <p className="muted small">
-              Tip: <kbd>j</kbd> / <kbd>k</kbd> move to the next / previous article, <kbd>s</kbd> summarizes the open one.
+              Tip: <kbd>j</kbd> / <kbd>k</kbd> move to the next / previous article, <kbd>s</kbd> summarizes the open one,
+              and “✦ Day digest” on a date summarizes that whole day.
             </p>
           </div>
         )}

@@ -51,7 +51,9 @@ export default function App() {
       </header>
       <Routes>
         <Route path="/" element={<TickersPage />} />
-        <Route path="/t/:ticker/:articleId?" element={<ReaderPage />} />
+        {/* One splat route so the reader (and its loaded headlines) stays mounted between
+            /t/T, /t/T/<articleId> and /t/T/day/<YYYY-MM-DD>. */}
+        <Route path="/t/:ticker/*" element={<ReaderPage />} />
         <Route
           path="*"
           element={

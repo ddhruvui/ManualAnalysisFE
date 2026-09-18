@@ -26,9 +26,10 @@ src/main.jsx, App.jsx        router + top bar with backend/volume health dot
 src/api.js                   the only place that calls fetch()
 src/hooks.js                 useHeadlines (paging + sync polling), usePinnedTickers, useReadArticles, useTickerSet, useDebounced
 src/format.js                dates, numbers, bytes, safeLink, sentiment tone
+src/period.js                local-calendar day helpers for digests (anchor <-> [from,to) ms)
 src/pages/TickersPage.jsx    "/"  filterable/sortable ticker grid, "Pinned" section first
-src/pages/ReaderPage.jsx     "/t/:ticker/:articleId?"  two-pane reader, j/k navigation
-src/components/              HeadlineList, ArticleView (+ Summarize button, `s` shortcut), SummaryPanel, SummaryChat (follow-up Q&A), PinButton, SyncBanner, Sentiment
+src/pages/ReaderPage.jsx     "/t/:ticker/*"  two-pane reader; right pane = article | day digest; j/k navigation
+src/components/              HeadlineList, ArticleView (+ Summarize button, `s` shortcut), SummaryPanel, FollowUpChat (shared follow-up Q&A), DigestView (AI day digest), PinButton, SyncBanner, Sentiment
 src/styles.css               all styles, CSS variables for theming
 ```
 
@@ -43,9 +44,13 @@ src/styles.css               all styles, CSS variables for theming
   trigger it from an explicit user action; keep the in-memory session cache in
   `ArticleView.jsx` so revisiting an article doesn't call again. Render summary fields as
   text, keep the "can be wrong / not investment advice" line.
+- Digests (`GET`/`POST /api/tickers/:t/digest`) are the most expensive call in the app:
+  only generate on an explicit click (the day-heading link or the Generate button), never
+  on plain navigation, and keep the session cache in `DigestView.jsx`.
 - Follow-ups use `POST /api/news/:id/ask` and must send the shown summary + the entire
-  thread each time (the backend is stateless). Keep `MAX_MESSAGES` / `MAX_QUESTION_CHARS`
-  in `SummaryChat.jsx` in step with `FOLLOW_UP_LIMITS` in `backend/src/gemini.js`. Answers
+  thread each time (the backend is stateless); digests use `…/digest/ask` the same way.
+  `FollowUpChat.jsx` is generic — give it a `cacheKey` that changes on Regenerate and an
+  `onAsk`. Keep its `MAX_MESSAGES` / `MAX_QUESTION_CHARS` in step with `FOLLOW_UP_LIMITS` in `backend/src/gemini.js`. Answers
   are plain text rendered with `white-space: pre-wrap` — no Markdown/HTML rendering.
 - User preferences (pinned tickers, read articles) live in `localStorage` under
   `news-reader:*` keys; wrap access in try/catch and keep the app working without it.
