@@ -1,25 +1,47 @@
 # frontend/ — React news reader
 
 Own git repo. Project-wide context lives one level up: **read `../CLAUDE.md` first**, then
-`../docs/architecture.md` for the planned pages and API shape.
-
-**Status (2026-09-18): empty — no package.json, no code yet.** Don't scaffold until asked.
+`../docs/architecture.md` for the API contract and how indexing status works.
 
 ## Role
 
 UI for browsing and reading news: pick a ticker → scan headlines (newest first) → read the
-full article. All data comes from the Node API in `../backend/`.
-
-## Rules specific to this repo
-
-- **Only talk to the backend API** (`/api/...`). Never call RunPod/S3 from the browser and
-  never put RunPod keys, volume IDs, or endpoints in frontend code or env files.
-- Article fields available from the data: `date, title, content, link, symbols[], tags[],
-  sentiment{polarity,neg,neu,pos}` — `tags`/`sentiment` can be missing. `content` is plain
-  text with `\n\n` paragraph breaks (render as text, never as HTML).
-- Lists can be huge (NVDA > 110k articles): paginate / virtualize, never render all rows.
-- Mock data and fixtures must be synthetic — no real article bodies in the repo.
+full article. All data comes from the Express API in `../backend/`.
 
 ## Commands
 
-None yet. When a package.json exists, record dev/build/test/lint commands here.
+```bash
+npm run dev       # Vite on http://localhost:5173, proxies /api → http://127.0.0.1:4000
+npm run build     # production build into dist/ (git-ignored)
+npm run preview   # serve the build
+```
+
+React 19 + React Router 7 + Vite 8. Plain JavaScript/JSX, hand-written CSS (no UI library),
+light/dark via `prefers-color-scheme`. No test setup yet.
+
+## Layout
+
+```
+src/main.jsx, App.jsx        router + top bar with backend/volume health dot
+src/api.js                   the only place that calls fetch()
+src/hooks.js                 useHeadlines (paging + sync polling), useReadArticles, useTickerSet, useDebounced
+src/format.js                dates, numbers, bytes, safeLink, sentiment tone
+src/pages/TickersPage.jsx    "/"  filterable/sortable ticker grid
+src/pages/ReaderPage.jsx     "/t/:ticker/:articleId?"  two-pane reader, j/k navigation
+src/components/              HeadlineList, ArticleView, SyncBanner, Sentiment
+src/styles.css               all styles, CSS variables for theming
+```
+
+## Rules specific to this repo
+
+- **Only talk to the backend API** (`/api/...`, via `src/api.js`). Never call RunPod/S3 from
+  the browser and never put RunPod keys, volume IDs, or endpoints in frontend code or env.
+- Article fields: `id, cursor, date, title, link, symbols[], tags[], sentiment|null`, plus
+  `snippet` in lists and `content` on the article endpoint. `content` is plain text —
+  render as text nodes, **never** `dangerouslySetInnerHTML`. Links go through `safeLink()`.
+- Lists can be huge (NVDA > 110k articles): keep cursor paging; if rows ever get heavier,
+  virtualize rather than rendering everything.
+- A ticker may be only partially indexed: respect `sync.state` from the API (banner,
+  "older articles will appear…" footer) instead of assuming the list is complete.
+- Below 820 px the reader shows one pane at a time — check both widths after UI changes.
+- Mock data and fixtures must be synthetic — no real article bodies in the repo.
