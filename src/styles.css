@@ -332,6 +332,16 @@ a:focus-visible,
   outline-offset: 1px;
 }
 
+.pin-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.pin-button:disabled:hover {
+  background: none;
+  color: var(--muted);
+}
+
 .pin-button.is-pinned {
   color: var(--accent);
 }

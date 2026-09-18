@@ -1,6 +1,10 @@
 /** Thumbtack toggle. Filled when the ticker is pinned to the top of the ticker list. */
-export default function PinButton({ ticker, pinned, onToggle, className = '' }) {
-  const label = pinned ? `Unpin ${ticker}` : `Pin ${ticker} to the top`;
+export default function PinButton({ ticker, pinned, onToggle, disabled = false, className = '' }) {
+  const label = disabled
+    ? 'Pinning is unavailable — the pins database cannot be reached'
+    : pinned
+      ? `Unpin ${ticker}`
+      : `Pin ${ticker} to the top`;
   return (
     <button
       type="button"
@@ -8,6 +12,7 @@ export default function PinButton({ ticker, pinned, onToggle, className = '' }) 
       aria-pressed={pinned}
       aria-label={label}
       title={label}
+      disabled={disabled}
       onClick={() => onToggle(ticker)}
     >
       <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">

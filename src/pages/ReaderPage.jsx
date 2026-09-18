@@ -25,7 +25,7 @@ export default function ReaderPage() {
   const headlines = useHeadlines(ticker, q);
   const { readIds, markRead } = useReadArticles();
   const knownTickers = useTickerSet();
-  const { pinned, togglePin } = usePinnedTickers();
+  const { pinned, togglePin, available: pinsAvailable } = usePinnedTickers();
   const articlePaneRef = useRef(null);
 
   // A new ticker starts with a clean search box.
@@ -76,7 +76,7 @@ export default function ReaderPage() {
               ← Tickers
             </Link>
             <h1>{ticker}</h1>
-            <PinButton ticker={ticker} pinned={pinned.has(ticker)} onToggle={togglePin} />
+            <PinButton ticker={ticker} pinned={pinned.has(ticker)} onToggle={togglePin} disabled={!pinsAvailable} />
             {sync && <span className="muted small">{formatNumber(sync.indexedCount)} indexed</span>}
           </div>
           <input

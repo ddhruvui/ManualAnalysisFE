@@ -52,8 +52,12 @@ src/styles.css               all styles, CSS variables for theming
   `FollowUpChat.jsx` is generic — give it a `cacheKey` that changes on Regenerate and an
   `onAsk`. Keep its `MAX_MESSAGES` / `MAX_QUESTION_CHARS` in step with `FOLLOW_UP_LIMITS` in `backend/src/gemini.js`. Answers
   are plain text rendered with `white-space: pre-wrap` — no Markdown/HTML rendering.
-- User preferences (pinned tickers, read articles) live in `localStorage` under
-  `news-reader:*` keys; wrap access in try/catch and keep the app working without it.
+- Pinned tickers come from the API (MongoDB Atlas), not `localStorage` — use
+  `usePinnedTickers()`, which shares one store across components, updates optimistically
+  and re-syncs on focus. Read-state still lives in `localStorage` (`news-reader:read`);
+  wrap that access in try/catch and keep the app working without it.
+- When pins are unavailable (Mongo unreachable) the pin buttons are disabled and the
+  ticker page shows the reason — reading news must keep working regardless.
   Don't nest the pin `<button>` inside the card `<a>` — they are siblings in `.ticker-card`.
 - Lists can be huge (NVDA > 110k articles): keep cursor paging; if rows ever get heavier,
   virtualize rather than rendering everything.

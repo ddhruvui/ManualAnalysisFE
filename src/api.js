@@ -28,6 +28,15 @@ export const getHealth = (signal) => request('/health', { signal });
 
 export const getTickers = (signal) => request('/tickers', { signal });
 
+/** Pinned tickers, stored server-side (MongoDB) so they follow the user across devices. */
+export const getPins = (signal) => request('/pins', { signal });
+
+const pinPath = (ticker) => `/pins/${encodeURIComponent(ticker)}`;
+
+/** Both return the full updated list: { enabled, tickers }. */
+export const pinTicker = (ticker, signal) => request(pinPath(ticker), { method: 'PUT', signal });
+export const unpinTicker = (ticker, signal) => request(pinPath(ticker), { method: 'DELETE', signal });
+
 export function getNews(ticker, { before, q, limit = 50 } = {}, signal) {
   const params = new URLSearchParams({ limit: String(limit) });
   if (before) params.set('before', before);

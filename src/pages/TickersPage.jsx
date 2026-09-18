@@ -14,7 +14,7 @@ const SORTS = {
   },
 };
 
-function TickerCard({ t, pinned, onTogglePin }) {
+function TickerCard({ t, pinned, onTogglePin, pinDisabled }) {
   return (
     <li className="ticker-card">
       <Link to={`/t/${t.ticker}`} className="ticker-link">
@@ -29,7 +29,7 @@ function TickerCard({ t, pinned, onTogglePin }) {
           ) : null}
         </span>
       </Link>
-      <PinButton ticker={t.ticker} pinned={pinned} onToggle={onTogglePin} />
+      <PinButton ticker={t.ticker} pinned={pinned} onToggle={onTogglePin} disabled={pinDisabled} />
     </li>
   );
 }
@@ -40,7 +40,8 @@ export default function TickersPage() {
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('');
   const [sort, setSort] = useState('alpha');
-  const { pinned, togglePin } = usePinnedTickers();
+  const pins = usePinnedTickers();
+  const { pinned, togglePin } = pins;
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -76,6 +77,7 @@ export default function TickersPage() {
   );
 
   const visibleCount = pinnedRows.length + otherRows.length;
+  const ready = Boolean(data) && pins.status !== 'loading';
 
   const openBestMatch = (e) => {
     e.preventDefault();
@@ -118,33 +120,34 @@ export default function TickersPage() {
       </div>
 
       {error && <p className="notice notice-error">Couldn’t load tickers: {error}</p>}
-      {!data && !error && <p className="empty">Loading tickers from the volume…</p>}
-      {data && !visibleCount && <p className="empty">No ticker matches “{filter}”.</p>}
+      {pins.error && <p className="notice notice-error">{pins.error}</p>}
+      {!ready && !error && <p className="empty">Loading tickers…</p>}
+      {ready && !visibleCount && <p className="empty">No ticker matches “{filter}”.</p>}
 
-      {pinnedRows.length > 0 && (
+      {ready && pinnedRows.length > 0 && (
         <section aria-labelledby="pinned-heading" className="ticker-section">
           <h2 id="pinned-heading" className="section-heading">
             Pinned <span className="muted">· {pinnedRows.length}</span>
           </h2>
           <ul className="ticker-grid">
             {pinnedRows.map((t) => (
-              <TickerCard key={t.ticker} t={t} pinned onTogglePin={togglePin} />
+              <TickerCard key={t.ticker} t={t} pinned onTogglePin={togglePin} pinDisabled={!pins.available} />
             ))}
           </ul>
         </section>
       )}
 
-      {otherRows.length > 0 && (
+      {ready && otherRows.length > 0 && (
         <section aria-labelledby="all-heading" className="ticker-section">
           <h2 id="all-heading" className="section-heading">
-            {pinned.size > 0 ? 'All other tickers' : 'All tickers'}{' '}
-            {data && pinned.size === 0 && !needle && (
+            {pinnedRows.length > 0 ? 'All other tickers' : 'All tickers'}{' '}
+            {pins.available && pinned.size === 0 && !needle && (
               <span className="muted section-hint">· use the pin on a card to keep tickers you follow at the top</span>
             )}
           </h2>
           <ul className="ticker-grid">
             {otherRows.map((t) => (
-              <TickerCard key={t.ticker} t={t} pinned={false} onTogglePin={togglePin} />
+              <TickerCard key={t.ticker} t={t} pinned={false} onTogglePin={togglePin} pinDisabled={!pins.available} />
             ))}
           </ul>
         </section>

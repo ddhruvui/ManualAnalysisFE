@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { getNews, getSyncStatus, getTickers } from './api.js';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { getNews, getPins, getSyncStatus, getTickers, pinTicker, unpinTicker } from './api.js';
 
 export function useDebounced(value, delayMs) {
   const [debounced, setDebounced] = useState(value);
@@ -31,42 +31,123 @@ export function useTickerSet() {
   return tickers;
 }
 
-const PINNED_KEY = 'news-reader:pinned';
+// Pinned tickers live in MongoDB (via the backend) so they follow the user across browsers
+// and devices — unlike read-state below, which is per-device by nature. One module-level
+// store keeps every mounted component in step and fetches once per session.
+const LEGACY_PINNED_KEY = 'news-reader:pinned'; // where pins lived before MongoDB
 
-function loadPinned() {
+const pinsStore = {
+  snapshot: { status: 'loading', tickers: new Set(), error: null },
+  listeners: new Set(),
+  loading: null,
+};
+
+function setPins(next) {
+  pinsStore.snapshot = next;
+  for (const listener of pinsStore.listeners) listener();
+}
+
+function subscribePins(listener) {
+  pinsStore.listeners.add(listener);
+  return () => pinsStore.listeners.delete(listener);
+}
+
+const getPinsSnapshot = () => pinsStore.snapshot;
+
+/** Move pins saved by an older build of this app to the server, once, then forget them. */
+async function migrateLegacyPins(serverTickers) {
+  let legacy;
   try {
-    const value = JSON.parse(localStorage.getItem(PINNED_KEY));
-    return Array.isArray(value) ? value.filter((t) => typeof t === 'string') : [];
+    legacy = JSON.parse(localStorage.getItem(LEGACY_PINNED_KEY));
   } catch {
-    return [];
+    return serverTickers; // storage unavailable or corrupt — nothing to migrate
+  }
+  if (!Array.isArray(legacy) || !legacy.length) return serverTickers;
+
+  let tickers = serverTickers;
+  for (const ticker of legacy) {
+    if (typeof ticker === 'string' && !tickers.includes(ticker)) tickers = (await pinTicker(ticker)).tickers;
+  }
+  try {
+    localStorage.removeItem(LEGACY_PINNED_KEY);
+  } catch {
+    // migrated anyway; the stale key is harmless
+  }
+  return tickers;
+}
+
+/**
+ * Load the pin list from the server. Single-flight: concurrent callers (React StrictMode
+ * mounts twice, and several components use this hook) share one request.
+ */
+function loadPins({ force = false } = {}) {
+  if (pinsStore.loading) return pinsStore.loading;
+  if (!force && pinsStore.snapshot.status === 'ready') return Promise.resolve();
+
+  pinsStore.loading = getPins()
+    .then((res) => migrateLegacyPins(res.tickers))
+    .then((tickers) => setPins({ status: 'ready', tickers: new Set(tickers), error: null }))
+    .catch((err) => setPins({ status: 'error', tickers: new Set(), error: err.message }))
+    .finally(() => {
+      pinsStore.loading = null;
+    });
+  return pinsStore.loading;
+}
+
+/**
+ * Re-read the list from the server, which is the source of truth: pins can change in
+ * another browser or device, and it also heals any local drift. Quiet — a failed refresh
+ * keeps whatever is on screen rather than replacing it with an error.
+ */
+function refreshPins() {
+  if (pinsStore.loading || pinsStore.snapshot.status === 'loading') return;
+  getPins()
+    .then(({ tickers }) => {
+      const next = new Set(tickers);
+      const current = pinsStore.snapshot.tickers;
+      const same = next.size === current.size && [...next].every((t) => current.has(t));
+      if (!same || pinsStore.snapshot.status !== 'ready') {
+        setPins({ status: 'ready', tickers: next, error: null });
+      }
+    })
+    .catch(() => {});
+}
+
+/** Optimistic so the pin reacts instantly; reverts and reports if the server refuses. */
+async function togglePin(ticker) {
+  const before = pinsStore.snapshot;
+  if (before.status !== 'ready') return;
+
+  const pinned = before.tickers.has(ticker);
+  const optimistic = new Set(before.tickers);
+  if (pinned) optimistic.delete(ticker);
+  else optimistic.add(ticker);
+  setPins({ status: 'ready', tickers: optimistic, error: null });
+
+  try {
+    const { tickers } = await (pinned ? unpinTicker(ticker) : pinTicker(ticker));
+    setPins({ status: 'ready', tickers: new Set(tickers), error: null });
+  } catch (err) {
+    setPins({ ...before, error: `Couldn’t ${pinned ? 'unpin' : 'pin'} ${ticker}: ${err.message}` });
   }
 }
 
-/** Tickers the user pinned to the top of the ticker list (this browser only). */
 export function usePinnedTickers() {
-  const [pinned, setPinned] = useState(() => new Set(loadPinned()));
+  const { status, tickers, error } = useSyncExternalStore(subscribePins, getPinsSnapshot);
 
-  // Keep other open tabs in step.
   useEffect(() => {
-    const onStorage = (e) => e.key === PINNED_KEY && setPinned(new Set(loadPinned()));
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    loadPins();
+    // Pins are shared state: pick up changes made elsewhere, and recover from any drift.
+    const onFocus = () => refreshPins();
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
+    };
   }, []);
 
-  const togglePin = useCallback((ticker) => {
-    setPinned((prev) => {
-      const next = new Set(prev);
-      if (!next.delete(ticker)) next.add(ticker);
-      try {
-        localStorage.setItem(PINNED_KEY, JSON.stringify([...next]));
-      } catch {
-        // storage unavailable — pins just won't persist
-      }
-      return next;
-    });
-  }, []);
-
-  return { pinned, togglePin };
+  return { pinned: tickers, status, error, available: status === 'ready', togglePin };
 }
 
 const READ_KEY = 'news-reader:read';
