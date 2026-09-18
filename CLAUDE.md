@@ -28,7 +28,7 @@ src/hooks.js                 useHeadlines (paging + sync polling), useReadArticl
 src/format.js                dates, numbers, bytes, safeLink, sentiment tone
 src/pages/TickersPage.jsx    "/"  filterable/sortable ticker grid
 src/pages/ReaderPage.jsx     "/t/:ticker/:articleId?"  two-pane reader, j/k navigation
-src/components/              HeadlineList, ArticleView, SyncBanner, Sentiment
+src/components/              HeadlineList, ArticleView (+ Summarize button, `s` shortcut), SummaryPanel, SyncBanner, Sentiment
 src/styles.css               all styles, CSS variables for theming
 ```
 
@@ -39,6 +39,10 @@ src/styles.css               all styles, CSS variables for theming
 - Article fields: `id, cursor, date, title, link, symbols[], tags[], sentiment|null`, plus
   `snippet` in lists and `content` on the article endpoint. `content` is plain text —
   render as text nodes, **never** `dangerouslySetInnerHTML`. Links go through `safeLink()`.
+- Summaries come from `POST /api/news/:id/summary?ticker=` (Gemini, ~10 s, billable). Only
+  trigger it from an explicit user action; keep the in-memory session cache in
+  `ArticleView.jsx` so revisiting an article doesn't call again. Render summary fields as
+  text, keep the "can be wrong / not investment advice" line.
 - Lists can be huge (NVDA > 110k articles): keep cursor paging; if rows ever get heavier,
   virtualize rather than rendering everything.
 - A ticker may be only partially indexed: respect `sync.state` from the API (banner,

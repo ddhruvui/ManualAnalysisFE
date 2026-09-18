@@ -10,6 +10,7 @@
   --positive: #1a7f4e;
   --negative: #c4362b;
   --neutral: #98a0ad;
+  --mixed: #a15c00;
   --topbar-h: 48px;
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-read: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
@@ -29,6 +30,7 @@
     --positive: #4cc38a;
     --negative: #ff7b72;
     --neutral: #6b7280;
+    --mixed: #f0b35a;
   }
 }
 
@@ -164,6 +166,14 @@ a:focus-visible,
 .button:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+.button-primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--surface);
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .link-button {
@@ -428,6 +438,14 @@ a:focus-visible,
   margin-inline: auto;
 }
 
+.article-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
 .article-date {
   font-size: 13px;
 }
@@ -503,6 +521,92 @@ a:focus-visible,
   border-style: dashed;
 }
 
+/* ---------- AI summary ---------- */
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 16px 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-radius: 12px;
+  background: var(--accent-soft);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.summary-error {
+  border-color: color-mix(in srgb, var(--negative) 40%, var(--border));
+  background: color-mix(in srgb, var(--negative) 10%, transparent);
+}
+
+.summary-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.summary .pill {
+  background: var(--surface);
+}
+
+.summary h2 {
+  margin-bottom: 2px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.summary-points {
+  padding-left: 18px;
+  list-style: disc;
+}
+
+.summary-points li + li {
+  margin-top: 4px;
+}
+
+.summary-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summary-skeleton span {
+  height: 10px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  animation: summary-pulse 1.2s ease-in-out infinite;
+}
+
+.summary-skeleton span:nth-child(2) {
+  width: 92%;
+  animation-delay: 0.15s;
+}
+
+.summary-skeleton span:nth-child(3) {
+  width: 64%;
+  animation-delay: 0.3s;
+}
+
+@keyframes summary-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .summary-skeleton span {
+    animation: none;
+  }
+}
+
 /* ---------- sentiment ---------- */
 
 .tone-positive {
@@ -525,6 +629,19 @@ a:focus-visible,
 .tone-bg-negative {
   background: color-mix(in srgb, var(--negative) 16%, transparent);
   color: var(--negative);
+}
+
+.summary .tone-bg-positive {
+  background: color-mix(in srgb, var(--positive) 18%, var(--surface));
+}
+
+.summary .tone-bg-negative {
+  background: color-mix(in srgb, var(--negative) 18%, var(--surface));
+}
+
+.summary .tone-bg-mixed {
+  background: color-mix(in srgb, var(--mixed) 18%, var(--surface));
+  color: var(--mixed);
 }
 
 .sentiment-dot {

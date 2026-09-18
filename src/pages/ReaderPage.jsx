@@ -121,7 +121,7 @@ export default function ReaderPage() {
           <div className="empty reader-placeholder">
             <p>Select a headline to read it here.</p>
             <p className="muted small">
-              Tip: <kbd>j</kbd> / <kbd>k</kbd> move to the next / previous article.
+              Tip: <kbd>j</kbd> / <kbd>k</kbd> move to the next / previous article, <kbd>s</kbd> summarizes the open one.
             </p>
           </div>
         )}

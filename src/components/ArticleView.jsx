@@ -1,8 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getArticle } from '../api.js';
+import { getArticle, summarizeArticle } from '../api.js';
 import { formatDateTime, formatRelative, safeLink, sourceHost, usTicker } from '../format.js';
 import { SentimentDetail } from './Sentiment.jsx';
+import SummaryPanel from './SummaryPanel.jsx';
+
+// Summaries are not stored by the backend; keep them for this browser session so stepping
+// back to an article doesn't trigger (and bill) another Gemini call.
+const summaryCache = new Map();
+const IDLE = { status: 'idle', data: null, error: null };
+const isTyping = (el) => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
 
 export default function ArticleView({ articleId, currentTicker, knownTickers, onRead }) {
   const [state, setState] = useState({ article: null, error: null });
@@ -19,6 +26,42 @@ export default function ArticleView({ articleId, currentTicker, knownTickers, on
     return () => ctrl.abort();
   }, [articleId, onRead]);
 
+  // --- AI summary, framed around the ticker whose news is being read ---
+  const summaryKey = `${articleId}:${currentTicker}`;
+  const [summary, setSummary] = useState(IDLE);
+  const summaryRequest = useRef(null);
+
+  useEffect(() => {
+    const cached = summaryCache.get(summaryKey);
+    setSummary(cached ? { status: 'ready', data: cached, error: null } : IDLE);
+    return () => summaryRequest.current?.abort();
+  }, [summaryKey]);
+
+  const summarize = useCallback(() => {
+    summaryRequest.current?.abort();
+    const ctrl = new AbortController();
+    summaryRequest.current = ctrl;
+    setSummary({ status: 'loading', data: null, error: null });
+    summarizeArticle(articleId, currentTicker, ctrl.signal)
+      .then((data) => {
+        summaryCache.set(summaryKey, data);
+        setSummary({ status: 'ready', data, error: null });
+      })
+      .catch((err) => err.name !== 'AbortError' && setSummary({ status: 'error', data: null, error: err.message }));
+  }, [articleId, currentTicker, summaryKey]);
+
+  const canSummarize = Boolean(state.article) && (summary.status === 'idle' || summary.status === 'error');
+  useEffect(() => {
+    if (!canSummarize) return undefined;
+    const onKey = (e) => {
+      if (e.key !== 's' || e.metaKey || e.ctrlKey || e.altKey || isTyping(document.activeElement)) return;
+      e.preventDefault();
+      summarize();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [canSummarize, summarize]);
+
   if (state.error) return <p className="notice notice-error">Couldn’t load the article: {state.error}</p>;
   if (!state.article) return <p className="empty">Loading article…</p>;
 
@@ -33,10 +76,21 @@ export default function ArticleView({ articleId, currentTicker, knownTickers, on
   return (
     <article className="article">
       <header>
-        <p className="article-date">
-          <time dateTime={article.date}>{formatDateTime(article.date)}</time>
-          <span className="muted"> · {formatRelative(article.date)}</span>
-        </p>
+        <div className="article-top">
+          <p className="article-date">
+            <time dateTime={article.date}>{formatDateTime(article.date)}</time>
+            <span className="muted"> · {formatRelative(article.date)}</span>
+          </p>
+          <button
+            type="button"
+            className="button button-primary"
+            onClick={summarize}
+            disabled={!canSummarize}
+            title={`Summarize this article for ${currentTicker} with Gemini (shortcut: s)`}
+          >
+            {summary.status === 'loading' ? 'Summarizing…' : summary.status === 'ready' ? 'Summarized' : `✦ Summarize for ${currentTicker}`}
+          </button>
+        </div>
         <h1>{article.title}</h1>
         <div className="article-meta">
           {href && (
@@ -69,6 +123,8 @@ export default function ArticleView({ articleId, currentTicker, knownTickers, on
           </ul>
         )}
       </header>
+
+      <SummaryPanel state={summary} ticker={currentTicker} onRetry={summarize} />
 
       <div className="article-body">
         {paragraphs.length ? paragraphs.map((p, i) => <p key={i}>{p}</p>) : <p className="muted">No article text in the data.</p>}

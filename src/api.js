@@ -38,3 +38,7 @@ export const forceResync = (ticker) =>
   request(`/tickers/${encodeURIComponent(ticker)}/sync`, { method: 'POST' });
 
 export const getArticle = (id, signal) => request(`/news/${encodeURIComponent(id)}`, { signal });
+
+/** Asks the backend to summarize an article for a focus ticker (Gemini; not stored server-side). */
+export const summarizeArticle = (id, ticker, signal) =>
+  request(`/news/${encodeURIComponent(id)}/summary?ticker=${encodeURIComponent(ticker)}`, { method: 'POST', signal });
