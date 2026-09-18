@@ -1,0 +1,20 @@
+# dependencies / build
+node_modules/
+dist/
+build/
+coverage/
+
+# env (frontend must never contain RunPod secrets anyway)
+.env
+.env.*
+!.env.example
+
+# logs / OS / editor
+*.log
+npm-debug.log*
+.DS_Store
+.vscode/
+.idea/
+
+# Claude Code local settings
+.claude/settings.local.json
