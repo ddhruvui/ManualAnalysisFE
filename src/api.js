@@ -1,4 +1,10 @@
-// All data comes from the Node API (proxied at /api in dev). Never call RunPod from here.
+// All data comes from the Node API. Never call RunPod from here.
+
+/**
+ * Where the API lives. Empty in dev — Vite proxies /api to the local backend — and the
+ * deployed backend's URL in a build. Inlined at build time, so it must never hold a key.
+ */
+export const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/+$/, '');
 
 export class ApiError extends Error {
   constructor(message, status) {
@@ -10,14 +16,14 @@ export class ApiError extends Error {
 async function request(path, { signal, method = 'GET', body } = {}) {
   let res;
   try {
-    res = await fetch(`/api${path}`, {
+    res = await fetch(`${API_BASE}/api${path}`, {
       signal,
       method,
       ...(body === undefined ? {} : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }),
     });
   } catch (err) {
     if (err.name === 'AbortError') throw err;
-    throw new ApiError('Cannot reach the backend. Is it running on port 4000?', 0);
+    throw new ApiError(`Cannot reach the backend${API_BASE ? ` at ${API_BASE}` : ' — is it running on port 4000?'}`, 0);
   }
   const data = await res.json().catch(() => null);
   if (!res.ok) throw new ApiError(data?.error ?? `Request failed (${res.status})`, res.status);

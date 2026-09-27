@@ -37,6 +37,11 @@ src/styles.css               all styles, CSS variables for theming
 
 - **Only talk to the backend API** (`/api/...`, via `src/api.js`). Never call RunPod/S3 from
   the browser and never put RunPod keys, volume IDs, or endpoints in frontend code or env.
+- The backend's location comes from `VITE_API_BASE` (`API_BASE` in `src/api.js`, same
+  convention as the sibling ResearchGateFE project): empty in dev so the Vite proxy handles
+  `/api`, the deployed origin in a build. `VITE_*` is inlined into the bundle and therefore
+  public — URLs only, never secrets. A cross-origin setup also needs `ALLOWED_ORIGINS` on
+  the backend.
 - Article fields: `id, cursor, date, title, link, symbols[], tags[], sentiment|null`, plus
   `snippet` in lists and `content` on the article endpoint. `content` is plain text —
   render as text nodes, **never** `dangerouslySetInnerHTML`. Links go through `safeLink()`.
