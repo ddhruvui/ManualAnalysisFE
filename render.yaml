@@ -1,0 +1,19 @@
+# Render Blueprint for the static frontend. If the service was created by hand in the
+# dashboard, add the rewrite below there instead (Redirects/Rewrites): without it Render
+# serves files only, so any deep link — /t/GOOG, /t/GOOG/day/2026-09-20 — returns 404 and
+# refreshing inside the app breaks. React Router needs every path to reach index.html.
+services:
+  - type: web
+    name: manualanalysisfe
+    runtime: static
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      # The backend's origin, inlined into the bundle at build time (public — URLs only).
+      # Set the value in the dashboard; changing it needs a rebuild, not just a restart.
+      - key: VITE_API_BASE
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

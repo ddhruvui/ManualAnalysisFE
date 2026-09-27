@@ -8,6 +8,13 @@ Own git repo. Project-wide context lives one level up: **read `../CLAUDE.md` fir
 UI for browsing and reading news: pick a ticker → scan headlines (newest first) → read the
 full article. All data comes from the Express API in `../backend/`.
 
+## Deployment
+
+Render static site (`render.yaml`). Two things bite if missed: `VITE_API_BASE` is consumed
+at **build** time, so changing it needs a rebuild; and without the `/* → /index.html`
+rewrite Render 404s every deep link, so refreshing on a ticker page breaks. The backend
+must also list this origin in its `ALLOWED_ORIGINS`.
+
 ## Commands
 
 ```bash
